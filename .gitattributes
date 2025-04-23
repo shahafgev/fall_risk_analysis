@@ -1,0 +1,5 @@
+# Always use LF in the repo, convert to CRLF on checkout (Windows safe)
+* text=auto
+
+# Jupyter notebooks should use binary transfer
+*.ipynb binary
