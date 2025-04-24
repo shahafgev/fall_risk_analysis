@@ -1,0 +1,23 @@
+state,metric,n,normality,heteroscedasticity,summary
+closed,AP MAD,37,Normal,No,Assumptions met
+closed,AP Max abs dev,37,Not normal,Yes,Both violated
+closed,AP Range,37,Not normal,Yes,Both violated
+closed,AP Variance,37,Not normal,Yes,Both violated
+closed,Ellipse area,37,Not normal,Yes,Both violated
+closed,ML MAD,37,Normal,No,Assumptions met
+closed,ML Max abs dev,37,Not normal,Yes,Both violated
+closed,ML Range,37,Not normal,Yes,Both violated
+closed,ML Variance,37,Not normal,Yes,Both violated
+closed,Path length,37,Normal,Yes,Heterosced
+closed,Sway RMS,37,Normal,Yes,Heterosced
+open,AP MAD,38,Normal,Yes,Heterosced
+open,AP Max abs dev,38,Not normal,Yes,Both violated
+open,AP Range,38,Not normal,Yes,Both violated
+open,AP Variance,38,Not normal,Yes,Both violated
+open,Ellipse area,38,Not normal,Yes,Both violated
+open,ML MAD,38,Normal,Yes,Heterosced
+open,ML Max abs dev,38,Not normal,Yes,Both violated
+open,ML Range,38,Not normal,Yes,Both violated
+open,ML Variance,38,Not normal,Yes,Both violated
+open,Path length,38,Not normal,Yes,Both violated
+open,Sway RMS,38,Not normal,Yes,Both violated
