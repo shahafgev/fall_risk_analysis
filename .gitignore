@@ -6,5 +6,8 @@ __pycache__/
 *.pkl
 .env
 .DS_Store
-venv/
 
+# Ignore virtual environments
+venv/
+.venv/
+myenv/
