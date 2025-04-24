@@ -69,14 +69,22 @@ def bland_altman_plot_by_state(df, metric_name, average_level=False, source_name
             source_name=source_name
         )
 
-        summary_msg = assumptions.get("summary", "")
         normal_distr = assumptions.get("normality", "") == "Normal"
+        homo_var = assumptions.get("heteroscedasticity", "") == "No"
 
-        if summary_msg and summary_msg != "Assumptions met":
+        if not normal_distr or not homo_var:
+            summary_parts = []
+            if not normal_distr:
+                summary_parts.append("non-normal distribution")
+            if not homo_var:
+                summary_parts.append("heteroscedasticity")
+            
+            joined_summary = " and ".join(summary_parts)
             warnings.warn(
-                f"Precomputed assumption for {metric_name} (eyes {st}): {summary_msg}. "
-                f"Using non-parametric LOA or interpret with caution."
+                f"Precomputed assumption violation for '{metric_name}' ({st} state): {joined_summary}. "
+                f"Using non-parametric LOA or interpret results with caution."
             )
+
 
         # Plot points and LOA
         ax.scatter(df_pivot['mean_measure'], df_pivot['diff_measure'], alpha=0.8)
