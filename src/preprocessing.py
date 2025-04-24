@@ -3,26 +3,63 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2
+from pathlib import Path
 
+# Define project root and data directories
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+RAW_DATA_DIR = DATA_DIR / "raw"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
-def load_and_process_zed_data(zed_file_dir):
+def get_participant_data_path(participant_type, participant_name):
     """
-    returns two data frames:
-    zed_df: prepared dataframe with all the joints positions including COM positions
-    zed_com_df: calculated dataframe for the COM positions
-    Both includes index for the frames
-    """
-    zed_df = pd.read_csv(zed_file_dir)
+    Get the path to a participant's data directory.
     
-    # Drop the first column od indexes
-    zed_df.drop(columns=zed_df.columns[0], axis=1,  inplace=True)
+    Parameters:
+        participant_type (str): Either 'students' or 'older_adults'
+        participant_name (str): Name of the participant
+        
+    Returns:
+        Path: Path to the participant's data directory
+    """
+    return RAW_DATA_DIR / participant_type / participant_name
+
+
+def get_processed_data_path(participant_type, participant_name):
+    """
+    Get the path to a participant's processed data directory.
+    
+    Parameters:
+        participant_type (str): Either 'students' or 'older_adults'
+        participant_name (str): Name of the participant
+        
+    Returns:
+        Path: Path to the participant's processed data directory
+    """
+    return PROCESSED_DATA_DIR / participant_type / participant_name
+
+
+def load_and_process_zed_data(zed_file_path):
+    """
+    Load and process ZED camera data.
+    
+    Parameters:
+        zed_file_path (str or Path): Path to the ZED data file
+        
+    Returns:
+        tuple: (zed_df, zed_com_df) - DataFrames with joint positions and COM positions
+    """
+    zed_df = pd.read_csv(zed_file_path)
+    
+    # Drop the first column of indexes
+    zed_df.drop(columns=zed_df.columns[0], axis=1, inplace=True)
     
     # Replace headers
-    zed_df.columns =    ['time (s)',
-                        'pelvis_X', 'pelvis_Y', 'pelvis_Z',
-                        'naval_spine_X', 'naval_spine_Y', 'naval_spine_Z',
-                        'left_hip_X', 'left_hip_Y', 'left_hip_Z',
-                        'right_hip_X', 'right_hip_Y', 'right_hip_Z']
+    zed_df.columns = ['time (s)',
+                      'pelvis_X', 'pelvis_Y', 'pelvis_Z',
+                      'naval_spine_X', 'naval_spine_Y', 'naval_spine_Z',
+                      'left_hip_X', 'left_hip_Y', 'left_hip_Z',
+                      'right_hip_X', 'right_hip_Y', 'right_hip_Z']
     
     # Convert from meters to centimeters
     coord_columns = [col for col in zed_df.columns if col != 'time (s)']
@@ -335,61 +372,126 @@ def load_and_process(zed_file_dir, force_plate_file_dir, zed_frames=50):
     return measurements_df
 
 
-def process_all_experiments(base_dir, zed_frames_dict):
+def process_all_experiments(participant_type, zed_frames_dict):
     """
-    Processes all participant data in the base directory and combines results into a single DataFrame.
+    Process all participant data for a specific participant type and combine results into a single DataFrame.
 
     Parameters:
-        base_dir (str): The path to the experiments folder.
+        participant_type (str): Either 'students' or 'older_adults'
         zed_frames_dict (dict): A dictionary mapping participant and state combinations to specific ZED frame values.
 
     Returns:
         DataFrame: A combined DataFrame with all participant measurements.
     """
-    # Initialize an empty list to store the data
+    print("="*50)
+    print(f"Starting process_all_experiments with participant_type: {participant_type}")
+    print(f"zed_frames_dict keys: {list(zed_frames_dict.keys())}")
+    print("="*50)
+    
     all_data = []
+    participant_dir = RAW_DATA_DIR / participant_type
+    
+    print(f"Processing data from: {participant_dir}")
+    
+    if not participant_dir.exists():
+        raise FileNotFoundError(f"Directory not found: {participant_dir}")
 
-    # Iterate through all folders in the base directory
-    for root, dirs, files in os.walk(base_dir):
+    # Iterate through all participant folders
+    for participant_name in os.listdir(participant_dir):
+        participant_path = participant_dir / participant_name
+        
+        if not participant_path.is_dir():
+            continue
+            
+        print(f"\nProcessing participant: {participant_name}")
+        
         # Look for "_zed" and "_force_plate" folders
-        zed_dirs = [d for d in dirs if "_zed" in d]
-        force_plate_dirs = [d for d in dirs if "_force_plate" in d]
+        zed_dirs = [d for d in os.listdir(participant_path) if "_zed" in d]
+        force_plate_dirs = [d for d in os.listdir(participant_path) if "_force_plate" in d]
+        
+        if not zed_dirs:
+            print(f"  No ZED data found for {participant_name}")
+            continue
+            
+        if not force_plate_dirs:
+            print(f"  No force plate data found for {participant_name}")
+            continue
 
         # Process each pair of `_zed` and `_force_plate` folders
         for zed_dir in zed_dirs:
-            participant_name = os.path.basename(root)  # Get the participant's name (e.g., "hanna")
-            zed_folder_path = os.path.join(root, zed_dir)
+            zed_folder_path = participant_path / zed_dir
+            print(f"  Processing ZED folder: {zed_dir}")
 
             # Find the corresponding `_force_plate` folder
             force_plate_dir = zed_dir.replace("_zed", "_force_plate")
-            force_plate_folder_path = os.path.join(root, force_plate_dir)
+            force_plate_folder_path = participant_path / force_plate_dir
 
-            if os.path.exists(force_plate_folder_path):
-                # Process files inside each folder
-                for zed_file, force_plate_file in zip(
-                    sorted(os.listdir(zed_folder_path)),
-                    sorted(os.listdir(force_plate_folder_path))
-                ):
-                    # Extract the state from the filename (e.g., "eyes_open1" -> "eyes_open", 1)
-                    filename_part = os.path.splitext(zed_file)[0].split("_")[-1]
-                    state_name = "".join([i for i in filename_part if not i.isdigit()])  # Extract state text
-                    trial_number = "".join([i for i in filename_part if i.isdigit()])  # Extract trial number
+            if not force_plate_folder_path.exists():
+                print(f"  Force plate folder not found: {force_plate_dir}")
+                continue
 
-                    if not trial_number:
-                        trial_number = None  # If no number, keep it as None
+            # Get list of files in both directories
+            zed_files = sorted([f for f in os.listdir(zed_folder_path) if f.endswith('.csv')])
+            force_plate_files = sorted([f for f in os.listdir(force_plate_folder_path) if f.endswith('.txt')])
+            
+            if not zed_files or not force_plate_files:
+                print(f"  No matching files found in directories:")
+                print(f"    ZED files: {len(zed_files)}")
+                print(f"    Force plate files: {len(force_plate_files)}")
+                continue
 
-                    # Construct the key for dictionary lookup
-                    key = f"{participant_name}_{filename_part}"
+            # Process files inside each folder
+            for zed_file, force_plate_file in zip(zed_files, force_plate_files):
+                print(f"    Processing files: {zed_file} and {force_plate_file}")
+                
+                # Extract the state from the filename (e.g., "ann_eyes_open1.csv" -> "ann_eyes_open1")
+                filename_without_ext = os.path.splitext(zed_file)[0]
+                
+                # Get the zed_frames value from the dictionary, defaulting to 50 if not found
+                zed_frames = zed_frames_dict.get(filename_without_ext, 50)
+                print(f"    Using {zed_frames} frames for {filename_without_ext}")
+
+                # Process the data
+                zed_file_path = zed_folder_path / zed_file
+                force_plate_file_path = force_plate_folder_path / force_plate_file
+
+                try:
+                    # Process ZED data
+                    zed_df, zed_com_df = load_and_process_zed_data(str(zed_file_path))
                     
-                    # Get the zed_frames value from the dictionary, defaulting to 50 if not found
-                    zed_frames = zed_frames_dict.get(key, 50)
+                    # Process force plate data
+                    force_plate_df = load_and_process_force_plate_data(str(force_plate_file_path), reverse_y_axis=True)
+                    
+                    # Trim the dataframes
+                    zed_com_df_trimmed = trim_dataframe_with_window(zed_com_df, 'time (s)', 'COM_AP', frames_num=zed_frames)
+                    force_plate_df_trimmed = trim_dataframe_with_window(force_plate_df, 'time (s)', 'Fz', frames_num=50)
+                    
+                    # Calculate measurements
+                    zed_com_measures = calculate_measurements(zed_com_df_trimmed, 'COM_ML', 'COM_AP')
+                    force_plate_measures = calculate_measurements(force_plate_df_trimmed, 'Ax', 'Ay')
 
-                    # Process the data
-                    zed_file_path = os.path.join(zed_folder_path, zed_file)
-                    force_plate_file_path = os.path.join(force_plate_folder_path, force_plate_file)
+                    parts = filename_without_ext.split('_')
+                    state_trial = parts[-1]  # e.g., "open1" or "closed2"
 
-                    # Call the `load_and_process` function
-                    measurements_df = load_and_process(zed_file_path, force_plate_file_path, zed_frames=zed_frames)
+                    if state_trial.startswith("open"):
+                        state_name = "open"
+                        trial_number = state_trial.replace("open", "")
+                    elif state_trial.startswith("closed"):
+                        state_name = "closed"
+                        trial_number = state_trial.replace("closed", "")
+                    else:
+                        raise ValueError(f"Unexpected trial format in file: {zed_file}")
+
+
+                    # Create measurements DataFrame
+                    measurements_data = {
+                        'Measurement': ['ML Range', 'AP Range', 'ML Variance', 'AP Variance',
+                                      'ML MAD', 'AP MAD', 'ML Max abs dev', 'AP Max abs dev', 
+                                      'Ellipse area', 'Path length', 'Sway RMS'],
+                        'ZED_COM': zed_com_measures,
+                        'Force_Plate': force_plate_measures
+                    }
+                    measurements_df = pd.DataFrame(measurements_data)
 
                     # Reshape the data to the desired format
                     for _, row in measurements_df.iterrows():
@@ -402,9 +504,24 @@ def process_all_experiments(base_dir, zed_frames_dict):
                                 "metric": row["Measurement"],
                                 "value": value
                             })
+                except Exception as e:
+                    print(f"    Error processing files: {str(e)}")
+                    continue
 
     # Combine all collected data into a DataFrame
+    if not all_data:
+        print("No data was processed successfully!")
+        return pd.DataFrame()
+        
     combined_df = pd.DataFrame(all_data)
+    print(f"\nSuccessfully processed {len(combined_df)} measurements")
+    
+    # Save the processed data directly in the participant type folder
+    processed_dir = PROCESSED_DATA_DIR / participant_type
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    output_file = processed_dir / "measurements.csv"
+    combined_df.to_csv(output_file, index=False)
+    print(f"Saved results to: {output_file}")
 
     return combined_df
 
