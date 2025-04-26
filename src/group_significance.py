@@ -109,7 +109,7 @@ def siginificance_dataframe(df1, df2, alpha=0.05):
     return styled_df
 
 
-def plot_metrics_with_significance_side_by_side(state, device, df1, df2, alpha=0.05, add_error_bars=True):
+def plot_metrics_with_significance_side_by_side(state, device, df1, df2, group1_label, group2_label, alpha=0.05, add_error_bars=True):
     """
     Plots two subplots side-by-side: one for all metrics except 'Path length',
     and one just for 'Path length', keeping consistent bar spacing and width.
@@ -158,9 +158,9 @@ def plot_metrics_with_significance_side_by_side(state, device, df1, df2, alpha=0
 
     # Left subplot (all except path length)
     bars_df1_l = ax_left.bar(x_left - width/2, mean_df1[:split_idx], width,
-                            yerr=sem_df1[:split_idx] if add_error_bars else None, capsize=5, label='Older Adults')
+                            yerr=sem_df1[:split_idx] if add_error_bars else None, capsize=5, label=group1_label)
     bars_df2_l = ax_left.bar(x_left + width/2, mean_df2[:split_idx], width,
-                            yerr=sem_df2[:split_idx] if add_error_bars else None, capsize=5, label='Students')
+                            yerr=sem_df2[:split_idx] if add_error_bars else None, capsize=5, label=group2_label)
 
     for i, sig in enumerate(sigs[:split_idx]):
         if sig:
