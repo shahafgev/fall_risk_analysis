@@ -1,6 +1,12 @@
 import pandas as pd
 import os
 
+# Define columns to drop
+columns_to_drop = [
+    'participant name', 'gender', 'age', 'height', 'weight',
+    'foot length', 'foot width', 'faller'
+]
+
 def transform_and_save_dataframe(df, state, device, save_name, average_level=False):
     """
     Transforms the dataframe (trial-level or average-level),
@@ -46,6 +52,9 @@ def transform_and_save_dataframe(df, state, device, save_name, average_level=Fal
     # Merge (only on participant name)
     df_transformed = pd.merge(additional_info, df_pivoted, on="participant name", how="inner")
 
+    # Drop unwanted columns before saving
+    df_cleaned = df_transformed.drop(columns=[col for col in columns_to_drop if col in df_transformed.columns])
+
     # Define save path (relative to src/)
     save_folder = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'datasets')
     os.makedirs(save_folder, exist_ok=True)
@@ -53,7 +62,7 @@ def transform_and_save_dataframe(df, state, device, save_name, average_level=Fal
     save_path = os.path.join(save_folder, f"{save_name}.csv")
 
     # Save the file
-    df_transformed.to_csv(save_path, index=False)
+    df_cleaned.to_csv(save_path, index=False)
     print(f"Transformed and merged DataFrame saved to: {save_path}")
 
 
@@ -66,4 +75,11 @@ if __name__ == "__main__":
     
     df2 = pd.read_csv('data/processed/older_adults/average_measurements.csv')
     transform_and_save_dataframe(df2, "closed", "ZED_COM", "oa_averages_closed_zed", average_level=True)
+
+    df3 = pd.read_csv('data/processed/older_adults/filtered_measurements.csv')
+    transform_and_save_dataframe(df, "closed", "Force_Plate", "oa_closed_fp")
+    
+    df4 = pd.read_csv('data/processed/older_adults/average_measurements.csv')
+    transform_and_save_dataframe(df2, "closed", "Force_Plate", "oa_averages_closed_fp", average_level=True)
+
 
