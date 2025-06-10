@@ -4,7 +4,7 @@ closed,AP Max abs dev,134,Not normal,No,Non-normal
 closed,AP Range,134,Normal,No,Assumptions met
 closed,AP Variance,134,Not normal,Yes,Both violated
 closed,Ellipse area,134,Not normal,Yes,Both violated
-closed,ML MAD,134,Normal,No,Assumptions met
+closed,ML MAD,134,Normal,Yes,Heterosced
 closed,ML Max abs dev,134,Not normal,No,Non-normal
 closed,ML Range,134,Normal,No,Assumptions met
 closed,ML Variance,134,Not normal,Yes,Both violated

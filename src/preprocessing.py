@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2
 from pathlib import Path
+from scipy.signal import correlate
+from scipy.signal import butter, filtfilt
+from ahrs.filters import Madgwick
+from ahrs.common.orientation import q_rotate
 
 # Define project root and data directories
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -93,6 +97,235 @@ def load_and_process_force_plate_data(force_plate_file_dir, reverse_y_axis=False
     force_plate_df[position_cols] = force_plate_df[position_cols] * 100
 
     return force_plate_df
+
+
+def load_and_process_phone_data(file_path):
+    df = pd.read_csv(file_path)
+
+    # Drop unnamed index column if it exists
+    if df.columns[0].lower().startswith("unnamed"):
+        df.drop(columns=df.columns[0], inplace=True)
+
+    # Clean and standardize column names
+    df.rename(columns=lambda x: x.strip(), inplace=True)
+    df.rename(columns={
+        'Time since start in ms': 'time_ms',
+        'ACCELEROMETER X (m/s²)': 'acc_x',
+        'ACCELEROMETER Y (m/s²)': 'acc_y',
+        'ACCELEROMETER Z (m/s²)': 'acc_z',
+        'GYROSCOPE X (rad/s)': 'gyro_x',
+        'GYROSCOPE Y (rad/s)': 'gyro_y',
+        'GYROSCOPE Z (rad/s)': 'gyro_z'
+    }, inplace=True)
+
+    # Convert time to seconds
+    df['time'] = df['time_ms'] / 1000.0
+
+    return df[['time', 'acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']]
+
+
+def apply_orientation_correction(df, fs=100):
+    acc = df[['acc_x', 'acc_y', 'acc_z']].values
+    gyr = df[['gyro_x', 'gyro_y', 'gyro_z']].values
+
+    # Initialize Madgwick filter
+    madgwick = Madgwick(sampleperiod=1.0/fs)
+
+    # Container for quaternions
+    quaternions = np.zeros((len(df), 4))
+    q = np.array([1.0, 0.0, 0.0, 0.0])  # initial quaternion
+
+    for t in range(len(df)):
+        q = madgwick.updateIMU(q, gyr[t], acc[t])
+        quaternions[t] = q
+
+    # Rotate accelerometer vectors to global frame
+    acc_global = np.array([q_rotate(q, a) for q, a in zip(quaternions, acc)])
+
+    # Add back to DataFrame
+    df[['acc_x_global', 'acc_y_global', 'acc_z_global']] = acc_global
+
+    return df
+
+
+def estimate_delay_cross_correlation(sig1, sig2, fs=100, max_lag_seconds=3):
+    n = min(len(sig1), len(sig2))
+    sig1, sig2 = sig1[:n], sig2[:n]
+    corr = correlate(sig1, sig2, mode='full')
+    lags = np.arange(-n + 1, n)
+    lag = lags[np.argmax(corr)]
+    max_lag = int(fs * max_lag_seconds)
+    lag = np.clip(lag, -max_lag, max_lag)
+    return lag / fs
+
+
+def butter_filter(data, fs, cutoff, btype='low', order=4):
+    nyq = 0.5 * fs
+    norm_cutoff = cutoff / nyq
+    b, a = butter(order, norm_cutoff, btype=btype, analog=False)
+    return filtfilt(b, a, data)
+
+
+def sync_and_plot_phones(df_front, df_back, fs=100, threshold_factor=2.0, window=3.0, skip_seconds=0.0):
+    # Extract raw accelerometer values
+    acc_front_raw = df_front[['acc_x_global', 'acc_y_global', 'acc_z_global']].values
+    acc_back_raw = df_back[['acc_x_global', 'acc_y_global', 'acc_z_global']].values
+
+    # Apply filtering to each axis
+    acc_front_filt = np.array([butter_filter(acc_front_raw[:, i], fs, 0.5, btype='high') for i in range(3)]).T
+    acc_back_filt = np.array([butter_filter(acc_back_raw[:, i], fs, 0.5, btype='high') for i in range(3)]).T
+
+    # Optional: low-pass filter to smooth the signal (e.g. 10 Hz)
+    acc_front_filt = np.array([butter_filter(acc_front_filt[:, i], fs, 10, btype='low') for i in range(3)]).T
+    acc_back_filt = np.array([butter_filter(acc_back_filt[:, i], fs, 10, btype='low') for i in range(3)]).T
+
+    # Compute magnitude of filtered accelerations
+    acc_mag_front = np.linalg.norm(acc_front_filt, axis=1)
+    acc_mag_back = np.linalg.norm(acc_back_filt, axis=1)
+
+    delay_sec = estimate_delay_cross_correlation(acc_mag_front, acc_mag_back, fs=fs)
+
+    if delay_sec > 0:
+        df_back = df_back[df_back['time'] >= delay_sec].copy()
+        df_back['time'] -= delay_sec
+    elif delay_sec < 0:
+        df_front = df_front[df_front['time'] >= -delay_sec].copy()
+        df_front['time'] += delay_sec
+
+    min_len = min(len(df_front), len(df_back))
+    time = df_front['time'].values[:min_len]
+    acc_mag_front = acc_mag_front[:min_len]
+    acc_mag_back = acc_mag_back[:min_len]
+    acc_mag_avg = 0.5 * (acc_mag_front + acc_mag_back)
+
+    # Truncate time and acc_mag_avg based on skip_seconds
+    skip_samples = int(skip_seconds * fs)
+    acc_mag_avg_trimmed = acc_mag_avg[skip_samples:]
+    time_trimmed = time[skip_samples:]
+
+    # Step detection after skipping initial seconds
+    threshold = acc_mag_avg_trimmed.mean() + threshold_factor * acc_mag_avg_trimmed.std()
+    spike_index_trimmed = np.argmax(acc_mag_avg_trimmed > threshold)
+
+    # Map back to original full index
+    spike_index = skip_samples + spike_index_trimmed
+    spike_time = time[spike_index]
+
+    fig, axs = plt.subplots(1, 2, figsize=(16, 5), sharey=True, gridspec_kw={'width_ratios': [2, 1]})
+    axs[0].plot(time, acc_mag_front, label='Front Phone')
+    axs[0].plot(time, acc_mag_back, label='Back Phone')
+    axs[0].axhline(threshold, color='red', linestyle='--', label='Step Threshold')
+    axs[0].axvline(spike_time, color='green', linestyle='--', label=f'Step ≈ {spike_time:.2f}s')
+    axs[0].set_title(f"Full Signal\nEstimated Delay: {delay_sec:.2f}s")
+    axs[0].set_xlabel("Time (s)")
+    axs[0].set_ylabel("Acceleration Magnitude (m/s²)")
+    axs[0].legend()
+    axs[0].grid(True)
+
+    axs[1].plot(time, acc_mag_front, label='Front Phone')
+    axs[1].plot(time, acc_mag_back, label='Back Phone')
+    axs[1].axhline(threshold, color='red', linestyle='--')
+    axs[1].axvline(spike_time, color='green', linestyle='--')
+    axs[1].set_xlim(max(0, spike_time - window), spike_time + window)
+    axs[1].set_title(f'Zoomed View ±{window}s')
+    axs[1].set_xlabel("Time (s)")
+    axs[1].grid(True)
+
+    fig.suptitle("Phone Synchronization and Shared Step Detection", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
+    print(f"✅ Estimated delay between phones: {delay_sec:.2f} seconds")
+    print(f"📍 Detected shared step time: {spike_time:.2f} seconds")
+
+    return spike_time, delay_sec
+
+
+def sync_phones_only(df_front, df_back, fs=100):
+    # Compute acceleration magnitudes after filtering
+    acc_front_raw = df_front[['acc_x', 'acc_y', 'acc_z']].values
+    acc_back_raw = df_back[['acc_x', 'acc_y', 'acc_z']].values
+
+    # High-pass filter (e.g., >0.5 Hz)
+    acc_front_filt = np.array([butter_filter(acc_front_raw[:, i], fs, 0.5, btype='high') for i in range(3)]).T
+    acc_back_filt = np.array([butter_filter(acc_back_raw[:, i], fs, 0.5, btype='high') for i in range(3)]).T
+
+    # Low-pass filter (e.g., <10 Hz)
+    acc_front_filt = np.array([butter_filter(acc_front_filt[:, i], fs, 10, btype='low') for i in range(3)]).T
+    acc_back_filt = np.array([butter_filter(acc_back_filt[:, i], fs, 10, btype='low') for i in range(3)]).T
+
+    # Compute magnitudes
+    acc_mag_front = np.linalg.norm(acc_front_filt, axis=1)
+    acc_mag_back = np.linalg.norm(acc_back_filt, axis=1)
+
+    # Estimate delay using cross-correlation
+    delay_sec = estimate_delay_cross_correlation(acc_mag_front, acc_mag_back, fs=fs)
+    return delay_sec
+
+
+def calculate_delay_table(group: str, participants: list):
+    """
+    Calculate the synchronization delay between front and back phones for all participants in a group.
+
+    Parameters:
+        group (str): The folder name (e.g., 'older_adults' or 'students').
+        participants (list): A list of participant names.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing delay estimates per trial.
+    """
+    trials = [f'open{i}' for i in range(1, 6)] + [f'closed{i}' for i in range(1, 6)]
+    delay_table = pd.DataFrame(index=participants, columns=trials)
+
+    for participant_name in participants:
+        for i in range(1, 6):
+            # Eyes open
+            trial_open = f"open{i}"
+            try:
+                front_path = os.path.join(
+                    "..", "..", "data", "raw", group,
+                    participant_name, f"{participant_name}_front_phone",
+                    f"{participant_name}_eyes_open{i}.csv"
+                )
+                back_path = os.path.join(
+                    "..", "..", "data", "raw", group,
+                    participant_name, f"{participant_name}_back_phone",
+                    f"{participant_name}_eyes_open{i}.csv"
+                )
+
+                df_front = load_and_process_phone_data(front_path)
+                df_back = load_and_process_phone_data(back_path)
+
+                delay = sync_phones_only(df_front, df_back)
+                delay_table.loc[participant_name, trial_open] = round(delay, 2)
+
+            except Exception as e:
+                delay_table.loc[participant_name, trial_open] = None
+
+            # Eyes closed
+            trial_closed = f"closed{i}"
+            try:
+                front_path = os.path.join(
+                    "..", "..", "data", "raw", group,
+                    participant_name, f"{participant_name}_front_phone",
+                    f"{participant_name}_eyes_closed{i}.csv"
+                )
+                back_path = os.path.join(
+                    "..", "..", "data", "raw", group,
+                    participant_name, f"{participant_name}_back_phone",
+                    f"{participant_name}_eyes_closed{i}.csv"
+                )
+
+                df_front = load_and_process_phone_data(front_path)
+                df_back = load_and_process_phone_data(back_path)
+
+                delay = sync_phones_only(df_front, df_back)
+                delay_table.loc[participant_name, trial_closed] = round(delay, 2)
+
+            except Exception as e:
+                delay_table.loc[participant_name, trial_closed] = None
+
+    return delay_table
 
 
 def plot_trim_point_decision(df, x_col, y_col, frames_num=50, find_recent=True, std_amount=2):
@@ -231,6 +464,24 @@ def calculate_mad(df, column):
     return mad
 
 
+def calculate_medAD(df, column):
+    """
+    Calculate the Median Absolute Deviation (MedAD) of a specified column in a DataFrame.
+
+    Parameters:
+        df (DataFrame): The DataFrame containing the data.
+        column (str): The name of the column for which to calculate the MAD.
+
+    Returns:
+        float: The Median Absolute Deviation (MedAD) of the column.
+    """
+    median_value = df[column].median()
+    deviations = df[column] - median_value
+    absolute_deviations = deviations.abs()
+    medad = absolute_deviations.median()
+    return medad
+
+
 def calculate_max_absolute_deviation(df, column):
     """
     Calculate the maximum absolute deviation from the mean of a specified column in a DataFrame.
@@ -302,19 +553,32 @@ def calculate_path_length(df, x_col, y_col):
     return path_length
 
 
-def calculate_resultant_displacement(df, x_col, y_col):
-    """ Calculate RD time series for each trial. """
-    mean_x = df[x_col].mean()
-    mean_y = df[y_col].mean()
-    rd = np.sqrt((df[x_col] - mean_x)**2 + (df[y_col] - mean_y)**2)
-    return rd
+def calculate_axis_rms(series):
+    """Compute RMS for a single axis (e.g., AP or ML)."""
+    mean = np.mean(series)
+    return np.sqrt(np.mean((series - mean)**2))
 
 
-def calculate_sway_rms(df, x_col, y_col):
-    """ Compute Sway RMS for a given trial. """
-    rd_series = calculate_resultant_displacement(df, x_col, y_col)
-    sway_rms = np.sqrt(np.mean(rd_series**2))
-    return sway_rms
+def calculate_sway_rms(df, ap_col, ml_col):
+    """
+    Calculate AP RMS, ML RMS, and total sway RMS for a trial.
+    
+    Parameters:
+    - df: DataFrame containing AP and ML CoP data
+    - ap_col: column name for AP direction
+    - ml_col: column name for ML direction
+    
+    Returns:
+    - Dictionary with 'ap_rms', 'ml_rms', and 'sway_rms'
+    """
+    ap_rms = calculate_axis_rms(df[ap_col])
+    ml_rms = calculate_axis_rms(df[ml_col])
+    
+    # Total sway RMS from resultant displacement
+    rd = np.sqrt((df[ap_col] - df[ap_col].mean())**2 + (df[ml_col] - df[ml_col].mean())**2)
+    sway_rms = np.sqrt(np.mean(rd**2))
+    
+    return ap_rms, ml_rms, sway_rms
 
 
 def calculate_measurements(df, ml_col, ap_col):
@@ -322,28 +586,42 @@ def calculate_measurements(df, ml_col, ap_col):
     ml_range = max(df[ml_col]) - min(df[ml_col])
     ap_range = max(df[ap_col]) - min(df[ap_col])
     
+    # Range ratio
+    range_ratio = ml_range/ml_range
+
     # Variances
     ml_variance = df[ml_col].var()
     ap_variance = df[ap_col].var()
     
-    # MAD
-    mad_ml = calculate_mad(df, ml_col)
-    mad_ap = calculate_mad(df, ap_col)
+    # Standard deviations
+    ml_std = df[ml_col].std()
+    ap_std = df[ap_col].std()
+
+    # MAD - Mean absolute deviation
+    ml_mad = calculate_mad(df, ml_col)
+    ap_mad = calculate_mad(df, ap_col)
     
-    # Maximal Deviation
+    # MedAD - Median absolute deviation
+    ml_medAD = calculate_medAD(df, ml_col)
+    ap_medAD = calculate_medAD(df, ap_col)
+
+    # Maximal deviation
     max_abs_dev_ml = calculate_max_absolute_deviation(df, ml_col)
     max_abs_dev_ap = calculate_max_absolute_deviation(df, ap_col)
     
     # Elliptical area
-    area = calculate_sda_ellipse_area(df, ml_col, ap_col)
+    ellipse_area = calculate_sda_ellipse_area(df, ml_col, ap_col)
     
     # Path length
     path_length = calculate_path_length(df, ml_col, ap_col)
     
     # Sway RMS
-    sway_rms = calculate_sway_rms(df, ml_col, ap_col)
-    
-    return ml_range, ap_range, ml_variance, ap_variance, mad_ml, mad_ap, max_abs_dev_ml, max_abs_dev_ap, area, path_length, sway_rms
+    ap_rms, ml_rms, sway_rms = calculate_sway_rms(df, ml_col, ap_col)
+
+    return ml_range, ap_range, range_ratio, ml_variance, ap_variance,\
+            ml_std, ap_std, ml_mad, ap_mad, ml_medAD, ap_medAD,\
+            max_abs_dev_ml, max_abs_dev_ap, ellipse_area,\
+            path_length, ml_rms, ap_rms, sway_rms
 
 
 def load_and_process(zed_file_dir, force_plate_file_dir, zed_frames=50):
@@ -361,8 +639,9 @@ def load_and_process(zed_file_dir, force_plate_file_dir, zed_frames=50):
     force_plate_measures = calculate_measurements(force_plate_df_trimmed, 'Ax', 'Ay')
 
     data = {
-        'Measurement': ['ML Range', 'AP Range', 'ML Variance', 'AP Variance',
-                        'ML MAD', 'AP MAD', 'ML Max abs dev', 'AP Max abs dev', 'Ellipse area', 'Path length', 'Sway RMS'],
+        'Measurement': ['ML Range', 'AP Range', 'Range Ratio', 'ML Variance', 'AP Variance',
+                        'ML STD', 'AP STD', 'ML MAD', 'AP MAD', 'ML MedAD', 'AP MedAD', 'ML Max abs dev', 'AP Max abs dev', 
+                        'Ellipse area', 'Path length', 'ML RMS', 'AP RMS', 'Sway RMS'],
         'ZED_COM': zed_com_measures,
         'Force_Plate': force_plate_measures
     }
@@ -485,9 +764,9 @@ def process_all_experiments(participant_type, zed_frames_dict):
 
                     # Create measurements DataFrame
                     measurements_data = {
-                        'Measurement': ['ML Range', 'AP Range', 'ML Variance', 'AP Variance',
-                                      'ML MAD', 'AP MAD', 'ML Max abs dev', 'AP Max abs dev', 
-                                      'Ellipse area', 'Path length', 'Sway RMS'],
+                        'Measurement': ['ML Range', 'AP Range', 'Range Ratio', 'ML Variance', 'AP Variance',
+                                        'ML STD', 'AP STD', 'ML MAD', 'AP MAD', 'ML MedAD', 'AP MedAD', 'ML Max abs dev', 'AP Max abs dev', 
+                                        'Ellipse area', 'Path length', 'ML RMS', 'AP RMS', 'Sway RMS'],
                         'ZED_COM': zed_com_measures,
                         'Force_Plate': force_plate_measures
                     }

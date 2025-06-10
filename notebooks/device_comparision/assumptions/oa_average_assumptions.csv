@@ -10,7 +10,7 @@ closed,ML Range,37,Not normal,Yes,Both violated
 closed,ML Variance,37,Not normal,Yes,Both violated
 closed,Path length,37,Normal,Yes,Heterosced
 closed,Sway RMS,37,Normal,Yes,Heterosced
-open,AP MAD,38,Normal,Yes,Heterosced
+open,AP MAD,38,Normal,No,Assumptions met
 open,AP Max abs dev,38,Not normal,Yes,Both violated
 open,AP Range,38,Not normal,Yes,Both violated
 open,AP Variance,38,Not normal,Yes,Both violated
