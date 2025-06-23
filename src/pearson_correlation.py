@@ -33,12 +33,9 @@ def plot_corrleations_heatmap(dataframe):
         return pivoted_df
 
     # List of metrics and states
-    metrics = [
-        "AP Range", "ML Range", "AP Variance", "ML Variance", 
-        "AP MAD", "ML MAD", 
-        "AP Max abs dev", "ML Max abs dev", "Ellipse area", "Path length", 
-        "Sway RMS"
-    ]
+    metrics = ['ML Range', 'AP Range', 'Range Ratio', 'ML Variance', 'AP Variance',
+                'ML STD', 'AP STD', 'ML MAD', 'AP MAD', 'ML MedAD', 'AP MedAD', 'ML Max abs dev', 'AP Max abs dev', 
+                'Ellipse area', 'Path length', 'ML RMS', 'AP RMS', 'Sway RMS']
     states = ["open", "closed"]
 
     # Dictionary to collect correlations

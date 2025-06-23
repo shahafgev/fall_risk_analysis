@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.signal import correlate
 from scipy.signal import butter, filtfilt
 from ahrs.filters import Madgwick
-from ahrs.common.orientation import q_rotate
+#from ahrs.common.orientation import q_rotate
 
 # Define project root and data directories
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -124,28 +124,28 @@ def load_and_process_phone_data(file_path):
     return df[['time', 'acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']]
 
 
-def apply_orientation_correction(df, fs=100):
-    acc = df[['acc_x', 'acc_y', 'acc_z']].values
-    gyr = df[['gyro_x', 'gyro_y', 'gyro_z']].values
+# def apply_orientation_correction(df, fs=100):
+#     acc = df[['acc_x', 'acc_y', 'acc_z']].values
+#     gyr = df[['gyro_x', 'gyro_y', 'gyro_z']].values
 
-    # Initialize Madgwick filter
-    madgwick = Madgwick(sampleperiod=1.0/fs)
+#     # Initialize Madgwick filter
+#     madgwick = Madgwick(sampleperiod=1.0/fs)
 
-    # Container for quaternions
-    quaternions = np.zeros((len(df), 4))
-    q = np.array([1.0, 0.0, 0.0, 0.0])  # initial quaternion
+#     # Container for quaternions
+#     quaternions = np.zeros((len(df), 4))
+#     q = np.array([1.0, 0.0, 0.0, 0.0])  # initial quaternion
 
-    for t in range(len(df)):
-        q = madgwick.updateIMU(q, gyr[t], acc[t])
-        quaternions[t] = q
+#     for t in range(len(df)):
+#         q = madgwick.updateIMU(q, gyr[t], acc[t])
+#         quaternions[t] = q
 
-    # Rotate accelerometer vectors to global frame
-    acc_global = np.array([q_rotate(q, a) for q, a in zip(quaternions, acc)])
+#     # Rotate accelerometer vectors to global frame
+#     acc_global = np.array([q_rotate(q, a) for q, a in zip(quaternions, acc)])
 
-    # Add back to DataFrame
-    df[['acc_x_global', 'acc_y_global', 'acc_z_global']] = acc_global
+#     # Add back to DataFrame
+#     df[['acc_x_global', 'acc_y_global', 'acc_z_global']] = acc_global
 
-    return df
+#     return df
 
 
 def estimate_delay_cross_correlation(sig1, sig2, fs=100, max_lag_seconds=3):
@@ -373,20 +373,12 @@ def plot_trim_point_decision(df, x_col, y_col, frames_num=50, find_recent=True, 
 
 def show_decision_trim_plots(zed_file_dir, 
                              #force_plate_file_dir, 
-                             #front_phone_file_dir, 
-                             #back_phone_file_dir, 
                              zed_frames=50):
     zed_data, zed_com_data = load_and_process_zed_data(zed_file_dir)
     #force_plate_data = load_and_process_force_plate_data(force_plate_file_dir, reverse_y_axis=True)
-    #front_phone_data = load_and_process_phone_data(front_phone_file_dir)
-    #back_phone_data = load_and_process_phone_data(back_phone_file_dir)
-    
+
     plot_trim_point_decision(zed_com_data, 'time (s)', 'COM_AP', frames_num=zed_frames)
-    #plot_trim_point_decision(force_plate_data, 'time (s)', 'Fz', frames_num=50)
-    #plot_trim_point_decision(front_phone_data, 'time (s)', 'Az', frames_num=len(front_phone_data), find_recent=False,
-    #                        std_amount=3)
-    #plot_trim_point_decision(back_phone_data, 'time (s)', 'Az', frames_num=len(back_phone_data), find_recent=False,
-    #                        std_amount=3)
+
 
 
 def trim_dataframe_with_window(df, x_col, y_col, frames_num=50, start_offset=5, window_duration=30, find_recent=True, std_amount=2):
@@ -407,7 +399,6 @@ def trim_dataframe_with_window(df, x_col, y_col, frames_num=50, start_offset=5, 
     - frames_num: int - The number of initial frames used to calculate the mean and standard deviation (default is 50).
     - start_offset: int - The offset in seconds to start trimming after the trimming point (default is 5 seconds).
     - window_duration: int - The duration in seconds of the data window to retain after the start offset (default is 30 seconds).
-    - back_phone : pd.DataFrame - The second input dataframe containing the data of the back phone to be trimmed.
     - find_recent: bool - If True, finds the most recent crossing point; if False, finds the first crossing point (default is True).
     
     Returns:
@@ -587,7 +578,7 @@ def calculate_measurements(df, ml_col, ap_col):
     ap_range = max(df[ap_col]) - min(df[ap_col])
     
     # Range ratio
-    range_ratio = ml_range/ml_range
+    range_ratio = ml_range/ap_range
 
     # Variances
     ml_variance = df[ml_col].var()
