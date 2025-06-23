@@ -4,7 +4,7 @@ This project analyzes postural stability data collected from older adults and st
 
 ## Project Structure
 
-
+'''
 - **src/**: Core analysis scripts and utilities:
   - `preprocessing.py`: Data cleaning and preparation
   - `aggregation.py`: Data aggregation functions
@@ -23,5 +23,5 @@ This project analyzes postural stability data collected from older adults and st
   - `models/`: Saved models
   - `plots/`: Generated plots
   - `tables/`: Summary tables and results
-
+'''
 
