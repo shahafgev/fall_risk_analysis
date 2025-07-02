@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2
@@ -14,6 +15,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
+
 
 def get_participant_data_path(participant_type, participant_name):
     """
@@ -380,7 +382,6 @@ def show_decision_trim_plots(zed_file_dir,
     plot_trim_point_decision(zed_com_data, 'time (s)', 'COM_AP', frames_num=zed_frames)
 
 
-
 def trim_dataframe_with_window(df, x_col, y_col, frames_num=50, start_offset=5, window_duration=30, find_recent=True, std_amount=2):
     """
     Trims the dataframe based on the crossing point of the upper standard deviation and 
@@ -642,7 +643,7 @@ def load_and_process(zed_file_dir, force_plate_file_dir, zed_frames=50):
     return measurements_df
 
 
-def process_all_experiments(participant_type, zed_frames_dict):
+def process_all_experiments(participant_type, zed_frames_dict, window_duration=30):
     """
     Process all participant data for a specific participant type and combine results into a single DataFrame.
 
@@ -733,8 +734,12 @@ def process_all_experiments(participant_type, zed_frames_dict):
                     force_plate_df = load_and_process_force_plate_data(str(force_plate_file_path), reverse_y_axis=True)
                     
                     # Trim the dataframes
-                    zed_com_df_trimmed = trim_dataframe_with_window(zed_com_df, 'time (s)', 'COM_AP', frames_num=zed_frames)
-                    force_plate_df_trimmed = trim_dataframe_with_window(force_plate_df, 'time (s)', 'Fz', frames_num=50)
+                    zed_com_df_trimmed = trim_dataframe_with_window(df=zed_com_df, x_col='time (s)', 
+                                                                    y_col='COM_AP', window_duration=window_duration, 
+                                                                    frames_num=zed_frames)
+                    force_plate_df_trimmed = trim_dataframe_with_window(df=force_plate_df, x_col='time (s)', 
+                                                                        y_col='Fz', window_duration=window_duration, 
+                                                                        frames_num=50)
                     
                     # Calculate measurements
                     zed_com_measures = calculate_measurements(zed_com_df_trimmed, 'COM_ML', 'COM_AP')
@@ -796,3 +801,120 @@ def process_all_experiments(participant_type, zed_frames_dict):
     return combined_df
 
 
+def get_total_time_per_trial(participant_type, zed_frames_dict):
+    """
+    For each participant and trial, computes the total time (s) recorded
+    in the trimmed ZED and force plate data.
+
+    Returns:
+        pd.DataFrame with columns: ['participant name', 'trial name', 'total_time_zed', 'total_time_fp']
+    """
+    print("="*50)
+    print(f"Extracting total time values for participant_type: {participant_type}")
+    print("="*50)
+
+    time_data = []
+    participant_dir = RAW_DATA_DIR / participant_type
+
+    if not participant_dir.exists():
+        raise FileNotFoundError(f"Directory not found: {participant_dir}")
+
+    for participant_name in os.listdir(participant_dir):
+        participant_path = participant_dir / participant_name
+
+        if not participant_path.is_dir():
+            continue
+
+        zed_dirs = [d for d in os.listdir(participant_path) if "_zed" in d]
+        force_plate_dirs = [d for d in os.listdir(participant_path) if "_force_plate" in d]
+
+        if not zed_dirs or not force_plate_dirs:
+            continue
+
+        for zed_dir in zed_dirs:
+            zed_folder_path = participant_path / zed_dir
+            force_plate_dir = zed_dir.replace("_zed", "_force_plate")
+            force_plate_folder_path = participant_path / force_plate_dir
+
+            if not force_plate_folder_path.exists():
+                continue
+
+            zed_files = sorted([f for f in os.listdir(zed_folder_path) if f.endswith('.csv')])
+            force_plate_files = sorted([f for f in os.listdir(force_plate_folder_path) if f.endswith('.txt')])
+
+            for zed_file, force_plate_file in zip(zed_files, force_plate_files):
+                trial_name = os.path.splitext(zed_file)[0]
+                zed_frames = zed_frames_dict.get(trial_name, 50)
+
+                try:
+                    zed_file_path = zed_folder_path / zed_file
+                    force_plate_file_path = force_plate_folder_path / force_plate_file
+
+                    zed_df, zed_com_df = load_and_process_zed_data(str(zed_file_path))
+                    force_plate_df = load_and_process_force_plate_data(str(force_plate_file_path), reverse_y_axis=True)
+
+                    zed_com_df_trimmed = trim_dataframe_with_window(zed_com_df, 'time (s)', 'COM_AP', frames_num=zed_frames)
+                    force_plate_df_trimmed = trim_dataframe_with_window(force_plate_df, 'time (s)', 'Fz', frames_num=50)
+
+                    total_time_zed = zed_com_df_trimmed["time (s)"].max()-zed_com_df_trimmed["time (s)"].min()
+                    total_time_fp = force_plate_df_trimmed["time (s)"].max()-force_plate_df_trimmed["time (s)"].min()
+
+                    time_data.append({
+                        "participant name": participant_name,
+                        "trial name": trial_name,
+                        "total_time_zed": total_time_zed,
+                        "total_time_fp": total_time_fp
+                    })
+
+                except Exception as e:
+                    print(f"Error processing {zed_file} / {force_plate_file}: {str(e)}")
+                    continue
+
+    return pd.DataFrame(time_data)
+
+
+def process_and_plot_fps(base_root1, base_root2):
+    def process_fps(base_root):
+        results = []
+        for root, dirs, files in os.walk(base_root):
+            # Looking for folders that end with _zed
+            if os.path.basename(root).endswith("_zed"):
+                participant_id = root.split(os.sep)[-2]  # get parent folder (participant)
+                for file in files:
+                    if file.endswith(".csv"):
+                        file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, 'r') as f:
+                                num_rows = sum(1 for _ in f) - 1  # exclude header
+                            fps = num_rows / 40  # 40 seconds trial
+                            results.append({
+                                "Participant": participant_id,
+                                "File": file,
+                                "Frames": num_rows,
+                                "FPS": round(fps, 2),
+                                "Group": os.path.basename(base_root)
+                            })
+                        except Exception as e:
+                            print(f"❌ Error processing {file_path}: {e}")
+        return pd.DataFrame(results)
+    
+    df1 = process_fps(base_root1)
+    df2 = process_fps(base_root2)
+    
+    df = pd.concat([df1, df2], ignore_index=True)
+    
+    if df.empty:
+        print("No valid CSV files found.")
+        return
+    
+    plt.figure(figsize=(10, 6))
+    sns.violinplot(x="FPS", y="Group", data=df, inner=None, palette="pastel", linewidth=0.6)
+    sns.boxplot(x="FPS", y="Group", data=df, width=0.2, color="gray", fliersize=0)
+    sns.stripplot(x="FPS", y="Group", data=df, size=5, color="black", alpha=0.5, jitter=0.25)
+
+    plt.title("Raincloud Plot of ZED FPS Values by Group", fontsize=14)
+    plt.xlabel("Frames Per Second (FPS)")
+    plt.ylabel("Participant Group")
+    plt.grid(axis="x", linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.show()

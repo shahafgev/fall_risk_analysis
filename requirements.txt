@@ -6,3 +6,4 @@ seaborn
 ahrs
 scikit-learn
 statsmodels
+astropy
