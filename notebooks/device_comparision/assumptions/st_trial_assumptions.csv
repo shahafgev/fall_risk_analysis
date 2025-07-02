@@ -6,28 +6,28 @@ closed,AP RMS,134,Normal,No,Assumptions met
 closed,AP Range,134,Normal,No,Assumptions met
 closed,AP STD,134,Not normal,No,Non-normal
 closed,AP Variance,134,Not normal,Yes,Both violated
-closed,Ellipse area,134,Not normal,Yes,Both violated
+closed,Ellipse area,134,Normal,Yes,Heterosced
 closed,ML MAD,134,Normal,No,Assumptions met
 closed,ML Max abs dev,134,Not normal,No,Non-normal
-closed,ML MedAD,134,Normal,Yes,Heterosced
+closed,ML MedAD,134,Normal,No,Assumptions met
 closed,ML RMS,134,Not normal,No,Non-normal
 closed,ML Range,134,Normal,No,Assumptions met
 closed,ML STD,134,Normal,No,Assumptions met
 closed,ML Variance,134,Not normal,Yes,Both violated
 closed,Path length,134,Not normal,Yes,Both violated
 closed,Range Ratio,134,Not normal,Yes,Both violated
-closed,Sway RMS,134,Not normal,No,Non-normal
+closed,Sway RMS,134,Normal,No,Assumptions met
 open,AP MAD,135,Normal,No,Assumptions met
-open,AP Max abs dev,135,Normal,Yes,Heterosced
+open,AP Max abs dev,135,Normal,No,Assumptions met
 open,AP MedAD,135,Normal,No,Assumptions met
 open,AP RMS,135,Normal,No,Assumptions met
 open,AP Range,135,Normal,Yes,Heterosced
 open,AP STD,135,Normal,No,Assumptions met
 open,AP Variance,135,Not normal,Yes,Both violated
 open,Ellipse area,135,Not normal,Yes,Both violated
-open,ML MAD,135,Normal,No,Assumptions met
+open,ML MAD,135,Normal,Yes,Heterosced
 open,ML Max abs dev,135,Not normal,No,Non-normal
-open,ML MedAD,135,Normal,No,Assumptions met
+open,ML MedAD,135,Normal,Yes,Heterosced
 open,ML RMS,135,Normal,No,Assumptions met
 open,ML Range,135,Normal,No,Assumptions met
 open,ML STD,135,Normal,No,Assumptions met

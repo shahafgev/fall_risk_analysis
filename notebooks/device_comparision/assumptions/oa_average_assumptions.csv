@@ -17,18 +17,18 @@ closed,ML Variance,37,Not normal,Yes,Both violated
 closed,Path length,37,Normal,Yes,Heterosced
 closed,Range Ratio,37,Normal,No,Assumptions met
 closed,Sway RMS,37,Normal,Yes,Heterosced
-open,AP MAD,38,Normal,Yes,Heterosced
+open,AP MAD,38,Normal,No,Assumptions met
 open,AP Max abs dev,38,Not normal,Yes,Both violated
-open,AP MedAD,38,Normal,No,Assumptions met
+open,AP MedAD,38,Normal,Yes,Heterosced
 open,AP RMS,38,Normal,Yes,Heterosced
 open,AP Range,38,Not normal,Yes,Both violated
-open,AP STD,38,Not normal,Yes,Both violated
+open,AP STD,38,Not normal,No,Non-normal
 open,AP Variance,38,Not normal,Yes,Both violated
 open,Ellipse area,38,Not normal,Yes,Both violated
 open,ML MAD,38,Normal,Yes,Heterosced
 open,ML Max abs dev,38,Not normal,Yes,Both violated
-open,ML MedAD,38,Normal,Yes,Heterosced
-open,ML RMS,38,Not normal,Yes,Both violated
+open,ML MedAD,38,Not normal,Yes,Both violated
+open,ML RMS,38,Not normal,No,Non-normal
 open,ML Range,38,Not normal,Yes,Both violated
 open,ML STD,38,Normal,Yes,Heterosced
 open,ML Variance,38,Not normal,Yes,Both violated
