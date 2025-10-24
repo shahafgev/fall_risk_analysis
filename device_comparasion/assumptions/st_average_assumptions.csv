@@ -1,0 +1,25 @@
+state,metric,n,normality,shapiro_p,heteroscedasticity,levene_p,summary
+closed,AP MAD,27,Normal,0.05665958187009096,No,0.8488928703731206,Assumptions met
+closed,AP Max abs dev,27,Normal,0.6494800894046168,No,0.7889639744826247,Assumptions met
+closed,AP RMS,27,Normal,0.20280214386057266,No,0.8605682532883236,Assumptions met
+closed,AP Range,27,Normal,0.6368935011794505,No,0.9163003981052189,Assumptions met
+closed,Ellipse area,27,Normal,0.30129654459625516,No,0.8621627284348905,Assumptions met
+closed,ML MAD,27,Normal,0.41182400028245136,No,0.9173335144773345,Assumptions met
+closed,ML Max abs dev,27,Not normal,0.04934460647390891,No,0.6493556791267332,Non-normal
+closed,ML RMS,27,Normal,0.31276494095908236,No,0.8956534123379718,Assumptions met
+closed,ML Range,27,Normal,0.15946716416397055,No,0.6463619775388585,Assumptions met
+closed,Path length,27,Normal,0.5991326208660634,No,0.21035861124437003,Assumptions met
+closed,Range Ratio,27,Normal,0.2648398665731684,No,0.647535617387216,Assumptions met
+closed,Sway RMS,27,Normal,0.5768458961426493,No,0.9422322539129624,Assumptions met
+open,AP MAD,27,Normal,0.4427591427559081,No,0.6400193369405156,Assumptions met
+open,AP Max abs dev,27,Normal,0.3551221734119512,No,0.5179600934579668,Assumptions met
+open,AP RMS,27,Normal,0.601174429868696,No,0.8103586447639666,Assumptions met
+open,AP Range,27,Normal,0.39817864375644574,No,0.4976199846166459,Assumptions met
+open,Ellipse area,27,Not normal,0.0016820913075338358,No,0.4391910108182595,Non-normal
+open,ML MAD,27,Normal,0.103915404876955,No,0.5733167013791975,Assumptions met
+open,ML Max abs dev,27,Normal,0.12169321126522714,No,0.43347157059161445,Assumptions met
+open,ML RMS,27,Not normal,0.04104014624370089,No,0.5292026854809675,Non-normal
+open,ML Range,27,Normal,0.10589637471534608,No,0.6975015316680864,Assumptions met
+open,Path length,27,Normal,0.8428570329326266,Yes,0.019618453397260906,Heterosced
+open,Range Ratio,27,Normal,0.5864709867000313,No,0.09679775647787803,Assumptions met
+open,Sway RMS,27,Normal,0.558762403896264,No,0.8605989050934235,Assumptions met

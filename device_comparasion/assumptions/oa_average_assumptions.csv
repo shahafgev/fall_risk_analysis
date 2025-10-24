@@ -1,0 +1,25 @@
+state,metric,n,normality,shapiro_p,heteroscedasticity,levene_p,summary
+closed,AP MAD,37,Normal,0.5640847034272815,No,0.9057477235149456,Assumptions met
+closed,AP Max abs dev,37,Not normal,0.008969111673029728,No,0.9323094528967446,Non-normal
+closed,AP RMS,37,Normal,0.23506422337453203,No,0.9464340024927959,Assumptions met
+closed,AP Range,37,Not normal,0.016854753691160865,No,0.9817614897112914,Non-normal
+closed,Ellipse area,37,Not normal,4.836179061006537e-08,No,0.5004850848205004,Non-normal
+closed,ML MAD,37,Normal,0.9237309024423612,No,0.8727577285367676,Assumptions met
+closed,ML Max abs dev,37,Not normal,1.155146371942788e-06,No,0.7397141154773853,Non-normal
+closed,ML RMS,37,Normal,0.4156977464979633,No,0.7560586617723014,Assumptions met
+closed,ML Range,37,Not normal,0.00017600017351944368,No,0.5967145734708157,Non-normal
+closed,Path length,37,Normal,0.4218201705064841,No,0.0656014908833638,Assumptions met
+closed,Range Ratio,37,Normal,0.21280316626193452,No,0.11917833529907475,Assumptions met
+closed,Sway RMS,37,Not normal,0.038287351487841924,No,0.7171811005064864,Non-normal
+open,AP MAD,38,Normal,0.9181156877148383,No,0.692460963719159,Assumptions met
+open,AP Max abs dev,38,Not normal,7.663912539262321e-10,No,0.39221762869702104,Non-normal
+open,AP RMS,38,Not normal,0.000989271257137059,No,0.46300430738687537,Non-normal
+open,AP Range,38,Not normal,1.0682186700120056e-07,No,0.4670742623435402,Non-normal
+open,Ellipse area,38,Not normal,0.00037993240762095645,No,0.8510220220008817,Non-normal
+open,ML MAD,38,Normal,0.3675916010489729,No,0.9834650445968516,Assumptions met
+open,ML Max abs dev,38,Not normal,0.005173584598031312,No,0.5906964916437651,Non-normal
+open,ML RMS,38,Normal,0.5174118252641075,No,0.7072071195901233,Assumptions met
+open,ML Range,38,Not normal,0.004540017894036836,No,0.2945082458607537,Non-normal
+open,Path length,38,Not normal,0.0003489884037885699,No,0.23558950383991004,Non-normal
+open,Range Ratio,38,Normal,0.8730953449085472,No,0.7096440711706675,Assumptions met
+open,Sway RMS,38,Not normal,0.004398659212760235,No,0.732974225126374,Non-normal

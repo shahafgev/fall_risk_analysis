@@ -1,0 +1,25 @@
+state,metric,n,normality,shapiro_p,heteroscedasticity,levene_p,summary
+closed,AP MAD,184,Not normal,0.035952396879340175,No,0.9219060198347746,Non-normal
+closed,AP Max abs dev,184,Not normal,2.4050443703576703e-12,No,0.7870264823222812,Non-normal
+closed,AP RMS,184,Not normal,0.00512152973086019,No,0.958595565615395,Non-normal
+closed,AP Range,184,Not normal,1.0438263728015539e-06,No,0.8405967667819493,Non-normal
+closed,Ellipse area,184,Not normal,7.989976969277301e-22,No,0.2676480366027079,Non-normal
+closed,ML MAD,184,Normal,0.2909242667388344,No,0.5201034100011569,Assumptions met
+closed,ML Max abs dev,184,Not normal,3.224016747968435e-21,No,0.3206554385581665,Non-normal
+closed,ML RMS,184,Not normal,1.3452250809930174e-06,No,0.9435106666182609,Non-normal
+closed,ML Range,184,Not normal,1.695368583797965e-19,No,0.20064954369210064,Non-normal
+closed,Path length,184,Not normal,5.393347775477301e-05,Yes,0.00013572397224488456,Both violated
+closed,Range Ratio,184,Not normal,0.003589856421696891,No,0.28733197820125866,Non-normal
+closed,Sway RMS,184,Not normal,1.5241336738749935e-05,No,0.4893241827836614,Non-normal
+open,AP MAD,189,Not normal,1.325829486033256e-10,No,0.1535208087806644,Non-normal
+open,AP Max abs dev,189,Not normal,1.7136036003420737e-27,No,0.3115276189331172,Non-normal
+open,AP RMS,189,Not normal,1.6235793524186073e-23,No,0.155685598718433,Non-normal
+open,AP Range,189,Not normal,2.1695727241348294e-26,No,0.3610510489116743,Non-normal
+open,Ellipse area,189,Not normal,2.714191030011711e-17,No,0.9864512624580289,Non-normal
+open,ML MAD,189,Not normal,2.6210546819152646e-07,No,0.7046356657746078,Non-normal
+open,ML Max abs dev,189,Not normal,1.8359350941552975e-18,No,0.759682404126983,Non-normal
+open,ML RMS,189,Not normal,8.859253673108796e-07,No,0.8746354461079187,Non-normal
+open,ML Range,189,Not normal,9.666702934610689e-17,No,0.21063601047300382,Non-normal
+open,Path length,189,Not normal,1.2332980119403042e-11,Yes,0.010321656171842322,Both violated
+open,Range Ratio,189,Not normal,0.0013871842734341961,No,0.06999762126631275,Non-normal
+open,Sway RMS,189,Not normal,6.967653806289712e-23,No,0.790673187061989,Non-normal

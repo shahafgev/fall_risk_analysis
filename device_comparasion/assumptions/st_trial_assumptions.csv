@@ -1,0 +1,25 @@
+state,metric,n,normality,shapiro_p,heteroscedasticity,levene_p,summary
+closed,AP MAD,134,Not normal,5.393083656970169e-06,No,0.5663746983766819,Non-normal
+closed,AP Max abs dev,134,Not normal,0.009780785336750173,No,0.9939385097272573,Non-normal
+closed,AP RMS,134,Not normal,1.4235593858855415e-05,No,0.6807724165378026,Non-normal
+closed,AP Range,134,Normal,0.22175331808424364,No,0.92094801798257,Assumptions met
+closed,Ellipse area,134,Normal,0.08979194732657603,No,0.787383686696637,Assumptions met
+closed,ML MAD,134,Normal,0.837020505094049,No,0.5668835012027836,Assumptions met
+closed,ML Max abs dev,134,Not normal,0.02438454099042127,No,0.33750623056665885,Non-normal
+closed,ML RMS,134,Normal,0.9391924474649332,No,0.5390575145260764,Assumptions met
+closed,ML Range,134,Normal,0.26261075702866377,No,0.3519795150884987,Assumptions met
+closed,Path length,134,Not normal,0.003775273010121289,Yes,0.0072923347683489,Both violated
+closed,Range Ratio,134,Not normal,0.006034426956178434,Yes,0.005336981233007756,Both violated
+closed,Sway RMS,134,Normal,0.1423815023786642,No,0.7040280049119207,Assumptions met
+open,AP MAD,135,Normal,0.3200418922653371,No,0.5839813251745227,Assumptions met
+open,AP Max abs dev,135,Normal,0.07618846490641157,No,0.22519657039027927,Assumptions met
+open,AP RMS,135,Normal,0.7117628556211844,No,0.8263981111933177,Assumptions met
+open,AP Range,135,Normal,0.8915705890991923,No,0.11686783407176463,Assumptions met
+open,Ellipse area,135,Not normal,1.6176154081765739e-09,Yes,0.04074149255925364,Both violated
+open,ML MAD,135,Normal,0.32795527719255557,Yes,0.034528246227373764,Heterosced
+open,ML Max abs dev,135,Not normal,0.00022233536243935215,No,0.3268541918520139,Non-normal
+open,ML RMS,135,Normal,0.2842221536460037,Yes,0.04334594453934284,Heterosced
+open,ML Range,135,Normal,0.19029864636222465,No,0.2769975022224097,Assumptions met
+open,Path length,135,Normal,0.2438349371862319,Yes,2.7895166329013657e-07,Heterosced
+open,Range Ratio,135,Not normal,1.4330121637619605e-05,Yes,0.002267378167172216,Both violated
+open,Sway RMS,135,Normal,0.9891208099477672,No,0.927646941370364,Assumptions met
